@@ -2,10 +2,16 @@
 
 ## Quick start
 
-To start framework run:
+To start dev containers and run framework type:
 ```
 cd /project/path
-./run.sh
+./run_env.sh
+```
+
+To stop and delete dev containers type:
+```
+cd /project/path
+./down_env.sh
 ```
 
 ## Project description
@@ -24,7 +30,7 @@ Users make ```POST``` request to ```localhost:5003/deploy``` with request body s
     "config": "/faster_rcnn/faster_rcnn_1x_rpn.py" # if model is mmdetection, you need to add config path from original mmdetection repo(https://github.com/open-mmlab/mmdetection)
 }
 ```
-If everything is OK, the backend starts deployment asynchronously(download checkpoint, save informations in db(postgres)) and returns,
+If everything is OK, the backend starts deployment asynchronously(download checkpoint, save informations in mongodb) and returns,
 ```
 {
     "result": "success"
@@ -37,16 +43,6 @@ Users make ```GET``` request to ```localhost:5004/infer``` with request body sho
 {
     "deployment_name": "my_object_detection_model_1" # this is unique name it was set at deployment time
     "image": "5aWDj..." # The base64 image that we apply inference on",
-    "ground_truth_boxes": [
-                            {
-                                "class": "dog",
-                                "bbox": [123, 235, 432, 45]
-                            },
-                            {
-                                "class": "cat",
-                                "bbox": [53, 35, 49, 25]
-                            }
-                          ]
 }
 ```
 If everything is OK, the backend starts inference and returns,
@@ -55,15 +51,15 @@ If everything is OK, the backend starts inference and returns,
     "objects":[
         {
             "class": "dog",
-            "bbox": [123, 235, 432, 45]
+            "bbox": [123, 235, 432, 45],
+            "confidence_score": 0.8
         },
         {
             "class": "cat",
-            "bbox": [53, 35, 49, 25]
+            "bbox": [53, 35, 49, 25],
+            "confidence_score": 0.9
         }
         ...
     ],
-    "AP": 0.5,
-    ...
 }
 ```

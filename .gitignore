@@ -1,2 +1,6 @@
-# Ignore vscode settings
+# vscode settings
 .vscode
+# mongodb volume
+db_vol
+# all pycache folders
+__pycache__/

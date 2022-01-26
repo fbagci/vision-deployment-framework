@@ -1,83 +1,104 @@
 services:
 
   # The rest api that serves tf object detection models
-  tf-api:
-    # container_name: tf-rest-api
-    build:
-      context: ./tf_api
-      dockerfile: Dockerfile
-    # restart: always
-    ports:
-      - 5001:5001
-    volumes:
-      - ./asd:/asd
-    networks:
-      - vision-dep-net
+  # tf-api:
+  #   profiles:
+  #     - donotstart
 
   # The rest api that serves mmdetection models
   mmdetection-api:
-    # container_name: mmdetection-rest-api
+    container_name: mmdetection-api
+    # Build image from original mmdetection Dockerfile
     build:
       context: ./mmdetection_api
-      dockerfile: Dockerfile
+      dockerfile: ./mmdetection/docker/Dockerfile
+    shm_size: 2gb
+    # Volumes for backend and data set
     ports:
       - 5002:5002
     volumes:
-      - ./asd:/asd
+      - ./mmdetection_api:/mmdetection_api
+    working_dir: /mmdetection_api
+    environment:
+      - PYTHONPATH=/mmdetection_api:/mmdetection_api/mmdetection/
+      - APPCONFDIR=/mmdetection_api/config.yml
+      - MODELDIR=/mmdetection_api/files/models/
+    # Use hosts GPU from container (See https://docs.docker.com/compose/gpu-support/)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+    # Prevent container to stop immediately
+    stdin_open: true
+    tty: true
     networks:
       - vision-dep-net
+    # profiles:
+    #   - donotstart
 
-  # Rest api that is used for deployment of models
+  # Rest api used for deployment of models
   deployment-api:
-    # container_name: deployment-api
+    container_name: deployment-api
     build:
       context: ./deployment_api
       dockerfile: Dockerfile
     # restart: always
+    volumes:
+      - ./deployment_api:/deployment_api
+    environment:
+      - PYTHONPATH=/deployment_api
+      - APPCONFDIR=/deployment_api/config.yml      
     ports:
       - 5003:5003
     networks:
       - vision-dep-net
+    # Prevent container to stop immediately
+    stdin_open: true
+    tty: true
+    # profiles:
+    #   - donotstart
 
   # Rest api used to make inference with deployed models
   inference-api:
-    # container_name: inference-api
+    container_name: inference-api
     build:
       context: ./inference_api
       dockerfile: Dockerfile
+    volumes:
+      - ./inference_api:/inference_api
+    environment:
+      - PYTHONPATH=/inference_api
+      - APPCONFDIR=/inference_api/config.yml
     ports:
       - 5004:5004
     networks:
       - vision-dep-net
+    # Prevent container to stop immediately
+    stdin_open: true
+    tty: true      
+    # profiles:
+    #   - donotstart
 
-  # Postgresql container
-  postgres:
-    # container_name: postgres
-    image: postgres:latest
+  mongo:
+    image: mongo
+    container_name: mongo
+    # restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
     ports:
-        - 5432:5432
+      - 27017:27017
     volumes:
-      - ./postgres_volume:/postgres_volume
-    environment:
-        - POSTGRES_PASSWORD=1
+      - ./db_vol:/data/db
     networks:
       - vision-dep-net
-
-  # UI for postgresql db
-  pgadmin4:
-    # container_name: pgadmin4
-    image: dpage/pgadmin4
-    ports:
-        - 5050:80
-    environment:
-        PGADMIN_DEFAULT_EMAIL: "fburakbagci@gmail.com"
-        PGADMIN_DEFAULT_PASSWORD: "1"
-    networks:
-      - vision-dep-net
+    # profiles:
+    #   - donotstart
 
   # Portainer allows us to accelerate container management by its UI
   container-manager-dev:
-    # container_name: container-manager-dev
+    container_name: container-manager-dev
     image: portainer/portainer-ce
     # restart: always
     ports:
@@ -89,6 +110,8 @@ services:
       admin-password: fburakbagci@gmail.com
     networks:
       - vision-dep-net
+    # profiles:
+    #   - donotstart
 
 # Docker network communicates services
 networks:
